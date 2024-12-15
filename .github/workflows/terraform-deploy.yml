@@ -1,10 +1,10 @@
-name: "Reusable Terraform Deploy"
+name: "Reusable Terraform Workflow"
 
 on:
   workflow_call:
     inputs:
       directory:
-        description: 'Caminho completo do diretório Terraform (ex: terraform-infrastructure/asm-site/dev)'
+        description: "Caminho completo do diretório Terraform"
         required: true
         type: string
     secrets:
@@ -19,20 +19,51 @@ on:
         required: true
 
 jobs:
-  plan:
+  terraform-plan:
     name: "Terraform Plan"
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ${{ inputs.directory }}
-
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-      TF_LOG: DEBUG
-      TF_LOG_PATH: /tmp/terraform.log
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Generate State Key
+        id: state_key
+        run: |
+          echo "${{ inputs.directory }}" | sed 's/\//-/g' > state_key.txt
+          STATE_KEY=$(cat state_key.txt)
+          echo "state_key=$STATE_KEY" >> $GITHUB_ENV
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=s3-backend-your-project" \
+            -backend-config="key=terraform-state/$state_key.tfstate" \
+            -backend-config="region=${{ secrets.AWS_DEFAULT_REGION }}"
+        working-directory: ${{ inputs.directory }}
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -var="state_key=$state_key"
+        working-directory: ${{ inputs.directory }}
+
+  terraform-apply:
+    name: "Terraform Apply"
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: approval-apply  # Solicita aprovação no GitHub
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     steps:
       - name: Checkout Repository
@@ -44,11 +75,44 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        run: terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=s3-backend-your-project" \
+            -backend-config="key=terraform-state/$state_key.tfstate" \
+            -backend-config="region=${{ secrets.AWS_DEFAULT_REGION }}"
+        working-directory: ${{ inputs.directory }}
 
-      - name: Terraform Plan
-        run: terraform plan -input=false
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false -var="state_key=$state_key"
+        working-directory: ${{ inputs.directory }}
 
-      - name: Display Terraform Log
-        if: always()
-        run: cat /tmp/terraform.log
+  terraform-destroy:
+    name: "Terraform Destroy"
+    needs: terraform-plan
+    runs-on: ubuntu-latest
+    environment: approval-destroy  # Solicita aprovação no GitHub
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=s3-backend-your-project" \
+            -backend-config="key=terraform-state/$state_key.tfstate" \
+            -backend-config="region=${{ secrets.AWS_DEFAULT_REGION }}"
+        working-directory: ${{ inputs.directory }}
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -input=false -var="state_key=$state_key"
+        working-directory: ${{ inputs.directory }}
