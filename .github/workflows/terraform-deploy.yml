@@ -1,0 +1,40 @@
+name: "Reusable Terraform Deploy"
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Nome do ambiente (ex: dev)'
+        required: true
+        type: string
+      resource_name:
+        description: 'Nome do recurso (ex: asm-site)'
+        required: true
+        type: string
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform-infrastructure/${{ inputs.resource_name }}/${{ inputs.environment }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -input=false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
