@@ -1,0 +1,13 @@
+name: "Deploy ASM-SITE DEV"
+
+on:
+  push:
+    branches:
+      - main  # Executa quando há mudanças no branch 'main'
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/terraform-deploy.yml
+    with:
+      environment: "dev"
+      resource_name: "asm-site"
