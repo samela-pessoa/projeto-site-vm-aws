@@ -1,10 +1,10 @@
-project = "credentials-vm"
+project = "access-vm"
 region  = "us-east-1"
 env     = "dev"
 
 tags = {
   Environment = "dev"
-  Project     = "credentials-vm"
+  Project     = "access-vm"
   Owner       = "DevOps Team"
   ManagedBy   = "Terraform"
 }
