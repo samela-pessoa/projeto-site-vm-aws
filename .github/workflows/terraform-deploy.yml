@@ -37,7 +37,6 @@ jobs:
       - name: Generate State Key
         id: state_key
         run: |
-          # Substitui "/" por "-" no directory
           STATE_KEY=$(echo "${{ inputs.directory }}" | sed 's/\//-/g')
           echo "::set-output name=state_key::$STATE_KEY"
 
@@ -47,16 +46,11 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="key=terraform-state/${{ steps.state_key.outputs.state_key }}.tfstate" \
-            -var-file="dev.tfvars"
+        run: terraform init -backend-config="key=terraform-state/${{ steps.state_key.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
         working-directory: ${{ inputs.directory }}
 
       - name: Terraform Plan
-        run: terraform plan -input=false \
-          -var="state_key=${{ steps.state_key.outputs.state_key }}" \
-          -var-file="dev.tfvars"
+        run: terraform plan -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
         working-directory: ${{ inputs.directory }}
 
   terraform-apply:
@@ -79,16 +73,11 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="key=terraform-state/${{ needs.terraform-plan.outputs.state_key }}.tfstate" \
-            -var-file="dev.tfvars"
+        run: terraform init -backend-config="key=terraform-state/${{ needs.terraform-plan.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
         working-directory: ${{ inputs.directory }}
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false \
-          -var="state_key=${{ needs.terraform-plan.outputs.state_key }}" \
-          -var-file="dev.tfvars"
+        run: terraform apply -auto-approve -input=false -var="state_key=${{ needs.terraform-plan.outputs.state_key }}" -var-file="dev.tfvars"
         working-directory: ${{ inputs.directory }}
 
   terraform-destroy:
@@ -111,14 +100,9 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Terraform Init
-        run: |
-          terraform init \
-            -backend-config="key=terraform-state/${{ needs.terraform-plan.outputs.state_key }}.tfstate" \
-            -var-file="dev.tfvars"
+        run: terraform init -backend-config="key=terraform-state/${{ needs.terraform-plan.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
         working-directory: ${{ inputs.directory }}
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve -input=false \
-          -var="state_key=${{ needs.terraform-plan.outputs.state_key }}" \
-          -var-file="dev.tfvars"
+        run: terraform destroy -auto-approve -input=false -var="state_key=${{ needs.terraform-plan.outputs.state_key }}" -var-file="dev.tfvars"
         working-directory: ${{ inputs.directory }}
