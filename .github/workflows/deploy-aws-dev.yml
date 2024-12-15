@@ -1,7 +1,7 @@
 name: "Deploy AWS DEV"
 
 on:
-  workflow_dispatch:  # Permite execução manual do workflow
+  workflow_dispatch:
     inputs:
       directory:
         description: "Caminho do diretório Terraform (ex: terraform-infrastructure/asm-site/dev)"
@@ -11,6 +11,33 @@ on:
 jobs:
   deploy:
     name: "Run Terraform Workflow"
-    uses: ./.github/workflows/terraform-deploy.yml  # Chama o workflow reutilizável
-    with:
-      directory: ${{ inputs.directory }}  # Passa o diretório informado manualmente
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      TF_LOG: DEBUG  # Log detalhado do Terraform
+      TF_LOG_PATH: /tmp/terraform.log  # Salva log em arquivo
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Debug AWS Environment Variables
+        run: |
+          echo "AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID"
+          echo "AWS_SECRET_ACCESS_KEY: [PROTECTED]"
+          echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ inputs.directory }}
+
+      - name: Display Terraform Log
+        if: always()
+        run: cat /tmp/terraform.log
