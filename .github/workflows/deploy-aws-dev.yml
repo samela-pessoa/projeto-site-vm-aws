@@ -9,72 +9,8 @@ on:
         type: string
 
 jobs:
-  plan:
-    name: "Terraform Plan"
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ inputs.directory }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set Up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Plan
-        run: terraform plan -input=false
-
-  apply:
-    name: "Terraform Apply"
-    needs: plan
-    runs-on: ubuntu-latest
-    environment: "approval-apply"
-    defaults:
-      run:
-        working-directory: ${{ inputs.directory }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set Up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false
-
-  destroy:
-    name: "Terraform Destroy"
-    needs: plan
-    runs-on: ubuntu-latest
-    environment: "approval-destroy"
-    defaults:
-      run:
-        working-directory: ${{ inputs.directory }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set Up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        run: terraform init
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve -input=false
+  deploy:
+    name: "Run Terraform Workflow"
+    uses: ./.github/workflows/terraform-deploy.yml  # Chama o workflow reutilizável
+    with:
+      directory: ${{ inputs.directory }}  # Passa o diretório informado manualmente
