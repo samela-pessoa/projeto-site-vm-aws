@@ -1,13 +1,75 @@
 name: "Deploy ASM-SITE DEV"
 
 on:
-  push:
-    branches:
-      - main  # Executa quando há mudanças no branch 'main'
+  workflow_dispatch:  # Permite execução manual do workflow
 
 jobs:
-  deploy:
-    uses: ./.github/workflows/terraform-deploy.yml
-    with:
-      environment: "dev"
-      resource_name: "asm-site"
+  plan:
+    name: "Terraform Plan"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform-infrastructure/asm-site/dev
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Plan
+        run: terraform plan -input=false
+
+  apply:
+    name: "Terraform Apply"
+    needs: plan  # Executa somente após a conclusão do 'plan'
+    runs-on: ubuntu-latest
+    environment: "approval-apply"  # Solicita aprovação para executar
+    defaults:
+      run:
+        working-directory: terraform-infrastructure/asm-site/dev
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false
+
+  destroy:
+    name: "Terraform Destroy"
+    needs: plan  # Executa somente após a conclusão do 'plan'
+    runs-on: ubuntu-latest
+    environment: "approval-destroy"  # Solicita aprovação para executar
+    defaults:
+      run:
+        working-directory: terraform-infrastructure/asm-site/dev
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -input=false
