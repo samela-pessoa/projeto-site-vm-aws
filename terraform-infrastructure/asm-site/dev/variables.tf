@@ -47,16 +47,22 @@ variable "tags" {
 # Abreviações de região
 variable "region_abbreviations" {
   description = "Mapeamento de abreviações para as regiões AWS"
-  type = map(string)
+  type        = map(string)
   default = {
-    "us-east-1"       = "ue1"
-    "us-east-2"       = "ue2"
-    "us-west-1"       = "uw1"
-    "us-west-2"       = "uw2"
-    "sa-east-1"       = "sa1"
-    "eu-west-1"       = "ew1"
-    "eu-central-1"    = "ec1"
-    "ap-south-1"      = "as1"
-    "ap-northeast-1"  = "an1"
+    "us-east-1"      = "ue1"
+    "us-east-2"      = "ue2"
+    "us-west-1"      = "uw1"
+    "us-west-2"      = "uw2"
+    "sa-east-1"      = "sa1"
+    "eu-west-1"      = "ew1"
+    "eu-central-1"   = "ec1"
+    "ap-south-1"     = "as1"
+    "ap-northeast-1" = "an1"
   }
+}
+
+#Cria nome dinamico para state file
+variable "state_key" {
+  description = "Chave única para o arquivo de estado no S3"
+  type        = string
 }
