@@ -17,6 +17,11 @@ jobs:
       run:
         working-directory: ${{ inputs.directory }}
 
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -37,9 +42,15 @@ jobs:
     needs: plan  # Só executa após o Plan
     runs-on: ubuntu-latest
     environment: approval-apply  # Aprovação necessária
+
     defaults:
       run:
         working-directory: ${{ inputs.directory }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     steps:
       - name: Checkout Repository
@@ -61,9 +72,15 @@ jobs:
     needs: plan  # Só executa após o Plan
     runs-on: ubuntu-latest
     environment: approval-destroy  # Aprovação necessária
+
     defaults:
       run:
         working-directory: ${{ inputs.directory }}
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     steps:
       - name: Checkout Repository
