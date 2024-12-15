@@ -9,8 +9,8 @@ on:
         type: string
 
 jobs:
-  terraform:
-    name: "Terraform Apply"
+  plan:
+    name: "Terraform Plan"
     runs-on: ubuntu-latest
 
     defaults:
@@ -32,5 +32,50 @@ jobs:
       - name: Terraform Plan
         run: terraform plan -input=false
 
+  apply:
+    name: "Terraform Apply"
+    needs: plan  # Só executa após o Plan
+    runs-on: ubuntu-latest
+    environment: approval-apply  # Aprovação necessária
+    defaults:
+      run:
+        working-directory: ${{ inputs.directory }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false
+
+  destroy:
+    name: "Terraform Destroy"
+    needs: plan  # Só executa após o Plan
+    runs-on: ubuntu-latest
+    environment: approval-destroy  # Aprovação necessária
+    defaults:
+      run:
+        working-directory: ${{ inputs.directory }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve -input=false
