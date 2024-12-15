@@ -41,6 +41,6 @@ variable "region_abbreviations" {
 }
 
 variable "state_key" {
-  description = "Chave do arquivo de estado no S3"
+  description = "Chave única para o arquivo de estado no S3"
   type        = string
 }
