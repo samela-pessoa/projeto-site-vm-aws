@@ -3,12 +3,8 @@ name: "Reusable Terraform Deploy"
 on:
   workflow_call:
     inputs:
-      environment:
-        description: 'Nome do ambiente (ex: dev)'
-        required: true
-        type: string
-      resource_name:
-        description: 'Nome do recurso (ex: asm-site)'
+      directory:
+        description: 'Caminho completo do diretório Terraform (ex: terraform-infrastructure/asm-site/dev)'
         required: true
         type: string
 
@@ -19,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: terraform-infrastructure/${{ inputs.resource_name }}/${{ inputs.environment }}
+        working-directory: ${{ inputs.directory }}
 
     steps:
       - name: Checkout Repository
