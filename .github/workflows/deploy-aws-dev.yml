@@ -1,4 +1,4 @@
-name: "Deploy ASM-SITE DEV"
+name: "Deploy AWS DEV"
 
 on:
   workflow_dispatch:  # Permite execução manual do workflow
