@@ -15,13 +15,27 @@ jobs:
     outputs:
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
     steps:
-      - name: Generate JSON Matrix
+      - name: Validate and Generate JSON Matrix
         id: generate-matrix
         run: |
-          # Transformar o texto em JSON
+          # Verifica se a entrada não está vazia
+          if [ -z "${{ inputs.directories }}" ]; then
+            echo "Erro: O campo 'directories' está vazio." >&2
+            exit 1
+          fi
+
+          # Converte o texto em JSON
           echo "${{ inputs.directories }}" | \
           awk -F': ' '{print "{\"key\":\"" $1 "\",\"value\":\"" $2 "\"}"}' | \
           jq -s '.' > directories.json
+
+          # Valida o JSON gerado
+          if ! jq empty directories.json; then
+            echo "Erro: O JSON gerado é inválido." >&2
+            exit 1
+          fi
+
+          # Define a matriz como saída
           MATRIX=$(cat directories.json)
           echo "::set-output name=matrix::$MATRIX"
 
