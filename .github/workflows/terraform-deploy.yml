@@ -58,8 +58,3 @@ jobs:
         if: ${{ always() }}  # Ajuste conforme a lógica de deploy
         run: terraform apply -auto-approve -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
         working-directory: ${{ matrix.directory.key }}
-
-      - name: Terraform Destroy (Optional)
-        if: ${{ always() }}  # Ajuste conforme a lógica de destruição
-        run: terraform destroy -auto-approve -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
-        working-directory: ${{ matrix.directory.key }}
