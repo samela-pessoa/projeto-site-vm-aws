@@ -3,17 +3,21 @@ name: "Deploy AWS DEV"
 on:
   workflow_dispatch:
     inputs:
-      directory:
-        description: "Caminho do diretório Terraform (ex: terraform-infrastructure/asm-site/dev)"
+      directories:
+        description: "Lista de diretórios Terraform no formato JSON. Exemplo: [{\"key\": \"1\", \"value\": \"terraform-infrastructure/asm-site/dev\"}]"
         required: true
         type: string
 
 jobs:
   deploy:
     name: "Run Terraform Workflow"
+    strategy:
+      matrix:
+        directory: ${{ fromJSON(inputs.directories) }}
+
     uses: ./.github/workflows/terraform-deploy.yml
     with:
-      directory: ${{ inputs.directory }}
+      directory: ${{ matrix.directory.value }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
