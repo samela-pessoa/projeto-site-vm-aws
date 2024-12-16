@@ -3,8 +3,8 @@ name: "Reusable Terraform Workflow"
 on:
   workflow_call:
     inputs:
-      directory:
-        description: "Caminho completo do diretório Terraform"
+      directories:
+        description: "Pares chave:valor representando diretorios e nomes"
         required: true
         type: string
     secrets:
@@ -19,90 +19,47 @@ on:
         required: true
 
 jobs:
-  terraform-plan:
-    name: "Terraform Plan"
+  terraform-operations:
+    name: "Terraform Operations"
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJSON(inputs.directories) }}
+
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
-    outputs:
-      state_key: ${{ steps.state_key.outputs.state_key }}
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+      - name: Set Up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
 
       - name: Generate State Key
         id: state_key
         run: |
-          STATE_KEY=$(echo "${{ inputs.directory }}" | sed 's/\//-/g')
+          STATE_KEY=$(echo "${{ matrix.directory.value }}" | sed 's/\\//-/g')
           echo "::set-output name=state_key::$STATE_KEY"
-
-      - name: Set Up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
 
       - name: Terraform Init
         run: terraform init -backend-config="key=terraform-state/${{ steps.state_key.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
-        working-directory: ${{ inputs.directory }}
+        working-directory: ${{ matrix.directory.key }}
 
       - name: Terraform Plan
         run: terraform plan -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
-        working-directory: ${{ inputs.directory }}
+        working-directory: ${{ matrix.directory.key }}
 
-  terraform-apply:
-    name: "Terraform Apply"
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-    environment: approval-apply
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      - name: Terraform Apply (Optional)
+        if: ${{ always() }}  # Ajuste conforme a lógica de deploy
+        run: terraform apply -auto-approve -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
+        working-directory: ${{ matrix.directory.key }}
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set Up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        run: terraform init -backend-config="key=terraform-state/${{ needs.terraform-plan.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
-        working-directory: ${{ inputs.directory }}
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false -var="state_key=${{ needs.terraform-plan.outputs.state_key }}" -var-file="dev.tfvars"
-        working-directory: ${{ inputs.directory }}
-
-  terraform-destroy:
-    name: "Terraform Destroy"
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-    environment: approval-destroy
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Set Up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      - name: Terraform Init
-        run: terraform init -backend-config="key=terraform-state/${{ needs.terraform-plan.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
-        working-directory: ${{ inputs.directory }}
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve -input=false -var="state_key=${{ needs.terraform-plan.outputs.state_key }}" -var-file="dev.tfvars"
-        working-directory: ${{ inputs.directory }}
+      - name: Terraform Destroy (Optional)
+        if: ${{ always() }}  # Ajuste conforme a lógica de destruição
+        run: terraform destroy -auto-approve -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
+        working-directory: ${{ matrix.directory.key }}
