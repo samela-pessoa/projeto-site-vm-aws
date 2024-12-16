@@ -32,6 +32,10 @@ jobs:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
 
     steps:
+      - name: Validate Directories Input
+        run: |
+          echo "${{ inputs.directories }}" | jq empty || exit 1
+
       - name: Checkout Repository
         uses: actions/checkout@v3
 
@@ -44,17 +48,16 @@ jobs:
         id: state_key
         run: |
           STATE_KEY=$(echo "${{ matrix.directory.value }}" | sed 's/\\//-/g')
-          echo "::set-output name=state_key::$STATE_KEY"
+          echo "state_key=$STATE_KEY" >> $GITHUB_ENV
 
       - name: Terraform Init
-        run: terraform init -backend-config="key=terraform-state/${{ steps.state_key.outputs.state_key }}.tfstate" -var-file="dev.tfvars"
-        working-directory: ${{ matrix.directory.key }}
+        run: terraform init -backend-config="key=terraform-state/${{ env.state_key }}.tfstate" -var-file="dev.tfvars"
+        working-directory: ${{ matrix.directory.value }}
 
       - name: Terraform Plan
-        run: terraform plan -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
-        working-directory: ${{ matrix.directory.key }}
+        run: terraform plan -input=false -var="state_key=${{ env.state_key }}" -var-file="dev.tfvars"
+        working-directory: ${{ matrix.directory.value }}
 
       - name: Terraform Apply (Optional)
-        if: ${{ always() }}  # Ajuste conforme a lógica de deploy
-        run: terraform apply -auto-approve -input=false -var="state_key=${{ steps.state_key.outputs.state_key }}" -var-file="dev.tfvars"
-        working-directory: ${{ matrix.directory.key }}
+        if: ${{ env.RUN_APPLY == 'true' }}
+        run: terr
