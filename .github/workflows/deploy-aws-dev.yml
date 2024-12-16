@@ -4,21 +4,41 @@ on:
   workflow_dispatch:
     inputs:
       directories:
-        description: "Lista de diretórios Terraform no formato JSON. Exemplo: [{\"key\": \"1\", \"value\": \"terraform-infrastructure/asm-site/dev\"}]"
+        description: "Lista de diretórios Terraform no formato: 1: terraform-infrastructure/asm-site/dev"
         required: true
         type: string
 
 jobs:
+  parse-input:
+    name: "Parse Directories Input"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate-matrix.outputs.matrix }}
+    steps:
+      - name: Generate JSON Matrix
+        id: generate-matrix
+        run: |
+          # Transformar o texto em JSON
+          echo "${{ inputs.directories }}" | \
+          awk -F': ' '{print "{\"key\":\"" $1 "\",\"value\":\"" $2 "\"}"}' | \
+          jq -s '.' > directories.json
+          MATRIX=$(cat directories.json)
+          echo "::set-output name=matrix::$MATRIX"
+
   deploy:
     name: "Run Terraform Workflow"
+    needs: parse-input
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        directory: ${{ fromJSON(inputs.directories) }}
+        directory: ${{ fromJSON(needs.parse-input.outputs.matrix) }}
 
-    uses: ./.github/workflows/terraform-deploy.yml
-    with:
-      directory: ${{ matrix.directory.value }}
-    secrets:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+    steps:
+      - name: Call Terraform Workflow
+        uses: ./.github/workflows/terraform-deploy.yml
+        with:
+          directory: ${{ matrix.directory.value }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
